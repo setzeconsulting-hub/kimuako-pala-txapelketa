@@ -108,7 +108,7 @@ export default function InscriptionPage() {
 
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Série
+            Série souhaitée
           </label>
           <select
             value={serie}
@@ -129,8 +129,15 @@ export default function InscriptionPage() {
             className="mt-1 w-4 h-4 accent-basque-red"
           />
           <label htmlFor="reglement" className="text-sm text-gray-600">
-            J&apos;accepte le règlement du tournoi et m&apos;engage à respecter les horaires
-            et les décisions de l&apos;organisation.
+            J&apos;accepte le{' '}
+            <a
+              href="/reglement.pdf"
+              target="_blank"
+              className="text-basque-red underline hover:text-basque-red-dark"
+            >
+              règlement
+            </a>
+            {' '}et m&apos;engage à respecter la bonne organisation du tournoi.
           </label>
         </div>
 

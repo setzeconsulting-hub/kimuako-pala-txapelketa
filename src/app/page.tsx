@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function HomePage() {
   return (
@@ -6,6 +7,13 @@ export default function HomePage() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-basque-red to-basque-red-dark text-white py-16 sm:py-24">
         <div className="max-w-4xl mx-auto px-4 text-center">
+          <Image
+            src="/logo-kimua.png"
+            alt="Logo Kimua - Angeluko Ikastola"
+            width={150}
+            height={150}
+            className="mx-auto mb-6 rounded-full bg-white p-1 shadow-lg"
+          />
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">
             Kimuako Pala Txapelketa
           </h1>
@@ -28,6 +36,13 @@ export default function HomePage() {
             >
               Voir le programme
             </Link>
+            <a
+              href="/reglement.pdf"
+              target="_blank"
+              className="border-2 border-white text-white font-bold px-8 py-3 rounded-lg hover:bg-white/10 transition text-lg"
+            >
+              Règlement
+            </a>
           </div>
         </div>
       </section>
