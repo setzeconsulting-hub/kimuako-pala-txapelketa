@@ -170,8 +170,12 @@ export const dictionaries = {
 } as const
 
 export type Lang = 'fr' | 'eu'
-export type Dictionary = typeof dictionaries['fr']
+export type Dictionary = {
+  [K in keyof typeof dictionaries['fr']]: {
+    [P in keyof typeof dictionaries['fr'][K]]: string
+  }
+}
 
 export function getDictionary(lang: Lang): Dictionary {
-  return dictionaries[lang]
+  return dictionaries[lang] as unknown as Dictionary
 }
