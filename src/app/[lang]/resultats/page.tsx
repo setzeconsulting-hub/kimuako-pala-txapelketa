@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { Equipe, Partie, Poule, EquipePoule, ClassementEquipe } from '@/lib/types'
+import { Lang, getDictionary } from '@/lib/dictionaries'
 
 export const revalidate = 30
 
@@ -60,7 +61,10 @@ function calculerClassement(
   return classement
 }
 
-export default async function ResultatsPage() {
+export default async function ResultatsPage({ params }: { params: { lang: Lang } }) {
+  const lang = params.lang === 'eu' ? 'eu' : 'fr'
+  const t = getDictionary(lang)
+
   const supabase = await createServerSupabaseClient()
 
   const { data: poules } = await supabase
@@ -75,11 +79,9 @@ export default async function ResultatsPage() {
   if (!poules || poules.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Résultats & Classements</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">{t.resultats.title}</h1>
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8">
-          <p className="text-yellow-800 text-lg">
-            Les résultats ne sont pas encore disponibles.
-          </p>
+          <p className="text-yellow-800 text-lg">{t.resultats.empty}</p>
         </div>
       </div>
     )
@@ -90,9 +92,7 @@ export default async function ResultatsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-        Résultats & Classements
-      </h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">{t.resultats.title}</h1>
 
       {series.map((serie) => {
         const seriePoules = (poules as Poule[]).filter((p) => p.serie === serie)
@@ -101,7 +101,7 @@ export default async function ResultatsPage() {
         return (
           <div key={serie} className="mb-10">
             <h2 className="text-2xl font-bold text-basque-green mb-4">
-              {serie === '1ere' ? '1ère Série' : '2ème Série'}
+              {serie === '1ere' ? t.resultats.serie1 : t.resultats.serie2}
             </h2>
 
             {seriePoules.map((poule) => {
@@ -124,59 +124,37 @@ export default async function ResultatsPage() {
                     <table className="w-full bg-white rounded-xl shadow text-sm">
                       <thead>
                         <tr className="bg-gray-50 text-gray-600">
-                          <th className="text-left px-4 py-3">#</th>
-                          <th className="text-left px-4 py-3">Équipe</th>
-                          <th className="text-center px-2 py-3">J</th>
-                          <th className="text-center px-2 py-3">V</th>
-                          <th className="text-center px-2 py-3">N</th>
-                          <th className="text-center px-2 py-3">D</th>
-                          <th className="text-center px-2 py-3">PM</th>
-                          <th className="text-center px-2 py-3">PE</th>
-                          <th className="text-center px-2 py-3">Diff</th>
-                          <th className="text-center px-2 py-3 font-bold">Pts</th>
+                          <th className="text-left px-4 py-3">{t.resultats.rank}</th>
+                          <th className="text-left px-4 py-3">{t.resultats.team}</th>
+                          <th className="text-center px-2 py-3">{t.resultats.played}</th>
+                          <th className="text-center px-2 py-3">{t.resultats.won}</th>
+                          <th className="text-center px-2 py-3">{t.resultats.drawn}</th>
+                          <th className="text-center px-2 py-3">{t.resultats.lost}</th>
+                          <th className="text-center px-2 py-3">{t.resultats.scored}</th>
+                          <th className="text-center px-2 py-3">{t.resultats.conceded}</th>
+                          <th className="text-center px-2 py-3">{t.resultats.diff}</th>
+                          <th className="text-center px-2 py-3 font-bold">{t.resultats.points}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {classement.map((c, i) => (
-                          <tr
-                            key={c.equipe.id}
-                            className={`border-t ${i === 0 ? 'bg-green-50' : ''}`}
-                          >
-                            <td className="px-4 py-2.5 font-bold text-gray-400">
-                              {i + 1}
-                            </td>
+                          <tr key={c.equipe.id} className={`border-t ${i === 0 ? 'bg-green-50' : ''}`}>
+                            <td className="px-4 py-2.5 font-bold text-gray-400">{i + 1}</td>
                             <td className="px-4 py-2.5 font-medium text-gray-800">
                               {c.equipe.garcon} & {c.equipe.fille}
                             </td>
                             <td className="text-center px-2 py-2.5">{c.joues}</td>
-                            <td className="text-center px-2 py-2.5 text-green-600">
-                              {c.victoires}
-                            </td>
-                            <td className="text-center px-2 py-2.5 text-yellow-600">
-                              {c.nuls}
-                            </td>
-                            <td className="text-center px-2 py-2.5 text-red-600">
-                              {c.defaites}
-                            </td>
+                            <td className="text-center px-2 py-2.5 text-green-600">{c.victoires}</td>
+                            <td className="text-center px-2 py-2.5 text-yellow-600">{c.nuls}</td>
+                            <td className="text-center px-2 py-2.5 text-red-600">{c.defaites}</td>
                             <td className="text-center px-2 py-2.5">{c.pointsMarques}</td>
                             <td className="text-center px-2 py-2.5">{c.pointsEncaisses}</td>
                             <td className="text-center px-2 py-2.5">
-                              <span
-                                className={
-                                  c.diff > 0
-                                    ? 'text-green-600'
-                                    : c.diff < 0
-                                    ? 'text-red-600'
-                                    : ''
-                                }
-                              >
-                                {c.diff > 0 ? '+' : ''}
-                                {c.diff}
+                              <span className={c.diff > 0 ? 'text-green-600' : c.diff < 0 ? 'text-red-600' : ''}>
+                                {c.diff > 0 ? '+' : ''}{c.diff}
                               </span>
                             </td>
-                            <td className="text-center px-2 py-2.5 font-bold text-basque-red">
-                              {c.points}
-                            </td>
+                            <td className="text-center px-2 py-2.5 font-bold text-basque-red">{c.points}</td>
                           </tr>
                         ))}
                       </tbody>

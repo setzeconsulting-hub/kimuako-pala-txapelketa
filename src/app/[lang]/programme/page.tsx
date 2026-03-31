@@ -1,9 +1,13 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { Equipe, Partie, Poule } from '@/lib/types'
+import { Lang, getDictionary } from '@/lib/dictionaries'
 
 export const revalidate = 30
 
-export default async function ProgrammePage() {
+export default async function ProgrammePage({ params }: { params: { lang: Lang } }) {
+  const lang = params.lang === 'eu' ? 'eu' : 'fr'
+  const t = getDictionary(lang)
+
   const supabase = await createServerSupabaseClient()
 
   const { data: parties } = await supabase
@@ -17,11 +21,9 @@ export default async function ProgrammePage() {
   if (!parties || parties.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Programme</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">{t.programme.title}</h1>
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8">
-          <p className="text-yellow-800 text-lg">
-            Le programme n&apos;est pas encore disponible. Revenez plus tard !
-          </p>
+          <p className="text-yellow-800 text-lg">{t.programme.empty}</p>
         </div>
       </div>
     )
@@ -32,7 +34,7 @@ export default async function ProgrammePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">Programme des parties</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">{t.programme.title}</h1>
 
       <div className="space-y-3">
         {(parties as Partie[]).map((partie) => {
@@ -47,19 +49,17 @@ export default async function ProgrammePage() {
                 partie.jouee ? 'border-l-4 border-basque-green' : ''
               }`}
             >
-              {/* Heure & Terrain */}
               <div className="flex sm:flex-col items-center gap-2 sm:w-24 text-center flex-shrink-0">
                 <span className="text-sm font-bold text-basque-red">
                   {partie.heure || '—'}
                 </span>
                 {partie.terrain && (
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                    Terrain {partie.terrain}
+                    {t.programme.terrain} {partie.terrain}
                   </span>
                 )}
               </div>
 
-              {/* Equipes & Score */}
               <div className="flex-1 flex items-center justify-center gap-4 text-center">
                 <div className="flex-1 text-right">
                   <p className="font-semibold text-gray-800 text-sm">
@@ -86,7 +86,6 @@ export default async function ProgrammePage() {
                 </div>
               </div>
 
-              {/* Poule */}
               <div className="sm:w-24 text-center flex-shrink-0">
                 {poule && (
                   <span className="text-xs bg-basque-red/10 text-basque-red px-2 py-0.5 rounded">

@@ -1,9 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { Lang, getDictionary } from '@/lib/dictionaries'
 
 export default function InscriptionPage() {
+  const params = useParams()
+  const lang = (params.lang === 'eu' ? 'eu' : 'fr') as Lang
+  const t = getDictionary(lang)
+
   const [garcon, setGarcon] = useState('')
   const [fille, setFille] = useState('')
   const [email, setEmail] = useState('')
@@ -16,7 +22,7 @@ export default function InscriptionPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!reglement) {
-      setError('Vous devez accepter le règlement.')
+      setError(t.inscription.errorRules)
       return
     }
     setLoading(true)
@@ -35,7 +41,7 @@ export default function InscriptionPage() {
     setLoading(false)
 
     if (dbError) {
-      setError('Erreur lors de l\'inscription. Veuillez réessayer.')
+      setError(t.inscription.errorGeneric)
       return
     }
 
@@ -47,11 +53,8 @@ export default function InscriptionPage() {
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <div className="bg-green-50 border border-green-200 rounded-xl p-8">
           <div className="text-4xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-green-800 mb-2">Inscription envoyée !</h2>
-          <p className="text-green-700">
-            Votre inscription est en attente de validation par l&apos;organisation.
-            Vous recevrez une confirmation par email.
-          </p>
+          <h2 className="text-2xl font-bold text-green-800 mb-2">{t.inscription.successTitle}</h2>
+          <p className="text-green-700">{t.inscription.successMsg}</p>
         </div>
       </div>
     )
@@ -60,13 +63,13 @@ export default function InscriptionPage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-        Inscription au tournoi
+        {t.inscription.title}
       </h1>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 space-y-5">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Joueur.se 1
+            {t.inscription.player1}
           </label>
           <input
             type="text"
@@ -74,13 +77,13 @@ export default function InscriptionPage() {
             value={garcon}
             onChange={(e) => setGarcon(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-basque-red focus:border-transparent outline-none"
-            placeholder="Prénom Nom"
+            placeholder={t.inscription.placeholder}
           />
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Joueur.se 2
+            {t.inscription.player2}
           </label>
           <input
             type="text"
@@ -88,13 +91,13 @@ export default function InscriptionPage() {
             value={fille}
             onChange={(e) => setFille(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-basque-red focus:border-transparent outline-none"
-            placeholder="Prénom Nom"
+            placeholder={t.inscription.placeholder}
           />
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Email de contact
+            {t.inscription.email}
           </label>
           <input
             type="email"
@@ -108,15 +111,15 @@ export default function InscriptionPage() {
 
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Série souhaitée
+            {t.inscription.serie}
           </label>
           <select
             value={serie}
             onChange={(e) => setSerie(e.target.value as '1ere' | '2eme')}
             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-basque-red focus:border-transparent outline-none bg-white"
           >
-            <option value="1ere">1ère série</option>
-            <option value="2eme">2ème série</option>
+            <option value="1ere">{t.inscription.serie1}</option>
+            <option value="2eme">{t.inscription.serie2}</option>
           </select>
         </div>
 
@@ -129,15 +132,15 @@ export default function InscriptionPage() {
             className="mt-1 w-4 h-4 accent-basque-red"
           />
           <label htmlFor="reglement" className="text-sm text-gray-600">
-            J&apos;accepte le{' '}
+            {t.inscription.rules.split(t.inscription.rulesLink)[0]}
             <a
               href="/reglement.pdf"
               target="_blank"
               className="text-basque-red underline hover:text-basque-red-dark"
             >
-              règlement
+              {t.inscription.rulesLink}
             </a>
-            {' '}et m&apos;engage à respecter la bonne organisation du tournoi.
+            {t.inscription.rules.split(t.inscription.rulesLink)[1]}
           </label>
         </div>
 
@@ -152,7 +155,7 @@ export default function InscriptionPage() {
           disabled={loading}
           className="w-full bg-basque-red text-white font-bold py-3 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
         >
-          {loading ? 'Inscription en cours...' : 'S\'inscrire'}
+          {loading ? t.inscription.submitting : t.inscription.submit}
         </button>
       </form>
     </div>
