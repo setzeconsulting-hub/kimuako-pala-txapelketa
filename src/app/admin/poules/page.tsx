@@ -66,25 +66,36 @@ export default function AdminPoules() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function genererPoules() {
-    if (
-      poules.length > 0 &&
-      !confirm('Des poules existent déjà. Voulez-vous tout régénérer ? Cela supprimera aussi les parties existantes.')
-    ) {
-      return
+  async function genererPoules(serieCible?: '1ere' | '2eme') {
+    if (poules.length > 0) {
+      const msg = serieCible
+        ? `Régénérer uniquement la ${serieCible === '1ere' ? '1ère' : '2ème'} série ? Les poules et parties de cette série seront supprimées.`
+        : 'Tout régénérer ? Cela supprimera toutes les poules et parties existantes.'
+      if (!confirm(msg)) return
     }
 
     setGenerating(true)
 
-    // Supprimer les anciennes données
-    await supabase.from('parties').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    await supabase.from('equipes_poules').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    await supabase.from('poules').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    // Supprimer les anciennes données (seulement la série ciblée ou tout)
+    if (serieCible) {
+      // Récupérer les IDs des poules de cette série
+      const poulesASupprimer = poules.filter((p) => p.serie === serieCible).map((p) => p.id)
+      if (poulesASupprimer.length > 0) {
+        await supabase.from('parties').delete().in('poule_id', poulesASupprimer)
+        await supabase.from('equipes_poules').delete().in('poule_id', poulesASupprimer)
+        await supabase.from('poules').delete().in('id', poulesASupprimer)
+      }
+    } else {
+      await supabase.from('parties').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('equipes_poules').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('poules').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    }
 
     // Équipes validées uniquement (pas besoin d'avoir payé)
     const eligibles = equipes.filter((e) => e.statut === 'validee')
 
-    for (const serie of ['1ere', '2eme'] as const) {
+    const seriesToGenerate = serieCible ? [serieCible] : ['1ere', '2eme'] as const
+    for (const serie of seriesToGenerate) {
       const serieEquipes = eligibles.filter((e) => e.serie === serie)
       if (serieEquipes.length < 2) continue
 
@@ -209,18 +220,38 @@ export default function AdminPoules() {
         </p>
       </div>
 
-      {/* Bouton génération */}
-      <button
-        onClick={genererPoules}
-        disabled={generating || eligibles.length < 2}
-        className="bg-basque-green text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-green-dark transition disabled:opacity-50 mb-8"
-      >
-        {generating
-          ? 'Génération en cours...'
-          : poules.length > 0
-          ? 'Régénérer les poules'
-          : 'Générer les poules'}
-      </button>
+      {/* Boutons génération */}
+      <div className="flex flex-wrap gap-3 mb-8">
+        <button
+          onClick={() => genererPoules()}
+          disabled={generating || eligibles.length < 2}
+          className="bg-basque-green text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-green-dark transition disabled:opacity-50"
+        >
+          {generating
+            ? 'Génération en cours...'
+            : poules.length > 0
+            ? 'Tout régénérer'
+            : 'Générer les poules'}
+        </button>
+        {poules.length > 0 && (
+          <>
+            <button
+              onClick={() => genererPoules('1ere')}
+              disabled={generating}
+              className="bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
+            >
+              Régénérer 1ère série
+            </button>
+            <button
+              onClick={() => genererPoules('2eme')}
+              disabled={generating}
+              className="bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
+            >
+              Régénérer 2ème série
+            </button>
+          </>
+        )}
+      </div>
 
       {/* Affichage des poules */}
       {poules.length > 0 && (
