@@ -207,9 +207,6 @@ export default function AdminPoules() {
           {' '}{eligibles.filter((e) => e.serie === '1ere').length} en 1ère série (poules de 4),
           {' '}{eligibles.filter((e) => e.serie === '2eme').length} en 2ème série (poules de 6).
         </p>
-        <p className="mt-1 text-xs text-blue-600">
-          Contrainte : Oihana/Lur et Marie/Julien ne seront pas dans la même poule.
-        </p>
       </div>
 
       {/* Bouton génération */}
