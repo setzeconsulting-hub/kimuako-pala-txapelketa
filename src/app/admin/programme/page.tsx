@@ -14,7 +14,7 @@ export default function AdminProgramme() {
 
   async function loadData() {
     const [paRes, eqRes, poRes] = await Promise.all([
-      supabase.from('parties').select('*').order('jour', { ascending: true }).order('heure', { ascending: true }),
+      supabase.from('parties').select('*').order('heure', { ascending: true }),
       supabase.from('equipes').select('*'),
       supabase.from('poules').select('*'),
     ])

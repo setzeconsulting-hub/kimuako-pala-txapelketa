@@ -13,7 +13,6 @@ export default async function ProgrammePage({ params }: { params: { lang: Lang }
   const { data: parties } = await supabase
     .from('parties')
     .select('*')
-    .order('jour', { ascending: true })
     .order('heure', { ascending: true })
 
   const { data: equipes } = await supabase.from('equipes').select('*')
