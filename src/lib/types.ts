@@ -49,4 +49,5 @@ export interface ClassementEquipe {
   pointsEncaisses: number
   diff: number
   joues: number
+  ratio: number
 }

@@ -6,7 +6,8 @@ export const revalidate = 30
 
 function calculerClassement(
   pouleEquipes: Equipe[],
-  parties: Partie[]
+  parties: Partie[],
+  serie: '1ere' | '2eme'
 ): ClassementEquipe[] {
   const classement: ClassementEquipe[] = pouleEquipes.map((equipe) => ({
     equipe,
@@ -18,6 +19,7 @@ function calculerClassement(
     pointsEncaisses: 0,
     diff: 0,
     joues: 0,
+    ratio: 0,
   }))
 
   const map = new Map(classement.map((c) => [c.equipe.id, c]))
@@ -54,9 +56,16 @@ function calculerClassement(
 
   classement.forEach((c) => {
     c.diff = c.pointsMarques - c.pointsEncaisses
+    c.ratio = c.joues > 0 ? c.points / c.joues : 0
   })
 
-  classement.sort((a, b) => b.points - a.points || b.diff - a.diff)
+  if (serie === '2eme') {
+    // 2ème série : tri par moyenne de points par match (ratio) pour équité entre poules de tailles différentes
+    classement.sort((a, b) => b.ratio - a.ratio || b.diff - a.diff)
+  } else {
+    // 1ère série : tri classique par total de points
+    classement.sort((a, b) => b.points - a.points || b.diff - a.diff)
+  }
 
   return classement
 }
@@ -115,7 +124,7 @@ export default async function ResultatsPage({ params }: { params: { lang: Lang }
                 (p) => p.poule_id === poule.id
               ) || []
 
-              const classement = calculerClassement(pouleEquipes, pouleParties)
+              const classement = calculerClassement(pouleEquipes, pouleParties, serie)
 
               return (
                 <div key={poule.id} className="mb-6">
@@ -134,6 +143,9 @@ export default async function ResultatsPage({ params }: { params: { lang: Lang }
                           <th className="text-center px-2 py-3">{t.resultats.conceded}</th>
                           <th className="text-center px-2 py-3">{t.resultats.diff}</th>
                           <th className="text-center px-2 py-3 font-bold">{t.resultats.points}</th>
+                          {serie === '2eme' && (
+                            <th className="text-center px-2 py-3 font-bold">Moy</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody>
@@ -155,6 +167,11 @@ export default async function ResultatsPage({ params }: { params: { lang: Lang }
                               </span>
                             </td>
                             <td className="text-center px-2 py-2.5 font-bold text-basque-red">{c.points}</td>
+                            {serie === '2eme' && (
+                              <td className="text-center px-2 py-2.5 font-bold text-blue-600">
+                                {c.ratio.toFixed(2)}
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
