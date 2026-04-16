@@ -90,10 +90,10 @@ export default function AdminPoules() {
 
       // Calcul du nombre de poules adapté :
       // 1ère série : 12 équipes → 3 poules de 4
-      // 2ème série : 18 équipes → 3 poules de 6
-      // Règle générale : viser 4 équipes/poule en S1, 6 en S2
-      const taillePoule = serie === '1ere' ? 4 : 6
-      let nbPoules = Math.max(1, Math.round(serieEquipes.length / taillePoule))
+      // 2ème série : 18 équipes → 4 poules (2 de 5, 2 de 4)
+      // Règle générale : viser 4 équipes/poule en S1, 4-5 en S2
+      const taillePoule = serie === '1ere' ? 4 : 5
+      let nbPoules = Math.max(1, Math.ceil(serieEquipes.length / taillePoule))
       if (nbPoules < 1) nbPoules = 1
 
       // Mélanger aléatoirement
@@ -205,7 +205,7 @@ export default function AdminPoules() {
         <p>
           <strong>{eligibles.length}</strong> équipes éligibles (validées) :
           {' '}{eligibles.filter((e) => e.serie === '1ere').length} en 1ère série (poules de 4),
-          {' '}{eligibles.filter((e) => e.serie === '2eme').length} en 2ème série (poules de 6).
+          {' '}{eligibles.filter((e) => e.serie === '2eme').length} en 2ème série (poules de 4-5).
         </p>
       </div>
 
