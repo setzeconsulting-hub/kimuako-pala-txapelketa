@@ -32,6 +32,7 @@ export interface Partie {
   equipe2_id: string
   score1: number | null
   score2: number | null
+  jour: string | null
   heure: string | null
   terrain: string | null
   jouee: boolean

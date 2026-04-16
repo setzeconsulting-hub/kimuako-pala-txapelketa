@@ -14,7 +14,7 @@ export default function AdminProgramme() {
 
   async function loadData() {
     const [paRes, eqRes, poRes] = await Promise.all([
-      supabase.from('parties').select('*').order('heure', { ascending: true }),
+      supabase.from('parties').select('*').order('jour', { ascending: true }).order('heure', { ascending: true }),
       supabase.from('equipes').select('*'),
       supabase.from('poules').select('*'),
     ])
@@ -29,7 +29,7 @@ export default function AdminProgramme() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function updatePartie(id: string, field: 'heure' | 'terrain', value: string) {
+  async function updatePartie(id: string, field: 'jour' | 'heure', value: string) {
     await supabase.from('parties').update({ [field]: value }).eq('id', id)
     setParties((prev) =>
       prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
@@ -50,60 +50,81 @@ export default function AdminProgramme() {
     )
   }
 
+  // Grouper les parties par jour
+  const partiesByJour = new Map<string, Partie[]>()
+  parties.forEach((p) => {
+    const jour = p.jour || 'Non planifié'
+    if (!partiesByJour.has(jour)) partiesByJour.set(jour, [])
+    partiesByJour.get(jour)!.push(p)
+  })
+
+  const joursOrdonnes = Array.from(partiesByJour.keys()).sort((a, b) => {
+    if (a === 'Non planifié') return 1
+    if (b === 'Non planifié') return -1
+    return a.localeCompare(b)
+  })
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-800 mb-4">Gestion du programme</h1>
       <p className="text-sm text-gray-500 mb-6">
-        Saisissez l&apos;heure et le terrain pour chaque partie.
+        Saisissez le jour, l&apos;heure et le terrain pour chaque partie.
       </p>
 
-      <div className="space-y-3">
-        {parties.map((partie) => {
-          const eq1 = equipesMap.get(partie.equipe1_id)
-          const eq2 = equipesMap.get(partie.equipe2_id)
-          const poule = poulesMap.get(partie.poule_id)
+      {joursOrdonnes.map((jour) => (
+        <div key={jour} className="mb-8">
+          <h2 className="text-lg font-bold text-basque-green mb-3">
+            {jour === 'Non planifié' ? 'Non planifié' : new Date(jour + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </h2>
+          <div className="space-y-3">
+            {partiesByJour.get(jour)!.map((partie) => {
+              const eq1 = equipesMap.get(partie.equipe1_id)
+              const eq2 = equipesMap.get(partie.equipe2_id)
+              const poule = poulesMap.get(partie.poule_id)
 
-          return (
-            <div
-              key={partie.id}
-              className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3"
-            >
-              {/* Poule */}
-              <span className="text-xs bg-basque-red/10 text-basque-red px-2 py-0.5 rounded font-medium flex-shrink-0">
-                {poule?.nom}
-              </span>
+              return (
+                <div
+                  key={partie.id}
+                  className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3"
+                >
+                  {/* Poule */}
+                  <span className="text-xs bg-basque-red/10 text-basque-red px-2 py-0.5 rounded font-medium flex-shrink-0">
+                    {poule?.nom}
+                  </span>
 
-              {/* Equipes */}
-              <div className="flex-1 text-sm text-gray-800">
-                <span className="font-medium">
-                  {eq1 ? `${eq1.garcon} & ${eq1.fille}` : '?'}
-                </span>
-                <span className="text-gray-400 mx-2">vs</span>
-                <span className="font-medium">
-                  {eq2 ? `${eq2.garcon} & ${eq2.fille}` : '?'}
-                </span>
-              </div>
+                  {/* Equipes */}
+                  <div className="flex-1 text-sm text-gray-800">
+                    <span className="font-medium">
+                      {eq1 ? `${eq1.garcon} & ${eq1.fille}` : '?'}
+                    </span>
+                    <span className="text-gray-400 mx-2">vs</span>
+                    <span className="font-medium">
+                      {eq2 ? `${eq2.garcon} & ${eq2.fille}` : '?'}
+                    </span>
+                  </div>
 
-              {/* Heure */}
-              <input
-                type="time"
-                value={partie.heure || ''}
-                onChange={(e) => updatePartie(partie.id, 'heure', e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-28"
-              />
+                  {/* Jour */}
+                  <input
+                    type="date"
+                    value={partie.jour || ''}
+                    onChange={(e) => updatePartie(partie.id, 'jour', e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-36"
+                  />
 
-              {/* Terrain */}
-              <input
-                type="text"
-                placeholder="Terrain"
-                value={partie.terrain || ''}
-                onChange={(e) => updatePartie(partie.id, 'terrain', e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-24"
-              />
-            </div>
-          )
-        })}
-      </div>
+                  {/* Heure */}
+                  <input
+                    type="time"
+                    value={partie.heure || ''}
+                    onChange={(e) => updatePartie(partie.id, 'heure', e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-28"
+                  />
+
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

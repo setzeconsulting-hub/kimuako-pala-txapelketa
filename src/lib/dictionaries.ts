@@ -56,6 +56,7 @@ export const dictionaries = {
       empty: "Les poules n'ont pas encore été générées. Revenez plus tard !",
       serie1: '1ère Série',
       serie2: '2ème Série',
+      seeAll: 'Voir toutes les poules',
     },
     programme: {
       title: 'Programme des parties',
@@ -140,6 +141,7 @@ export const dictionaries = {
       empty: 'Multzoak oraindik ez dira sortu. Itzuli geroago!',
       serie1: '1. Maila',
       serie2: '2. Maila',
+      seeAll: 'Multzo guztiak ikusi',
     },
     programme: {
       title: 'Partiden programa',

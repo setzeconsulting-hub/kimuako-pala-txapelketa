@@ -123,9 +123,9 @@ export default function AdminScores() {
                     {partie.heure && (
                       <span className="text-xs text-gray-500">{partie.heure}</span>
                     )}
-                    {partie.terrain && (
+                    {partie.jour && (
                       <span className="text-xs text-gray-500">
-                        Terrain {partie.terrain}
+                        {new Date(partie.jour + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                       </span>
                     )}
                   </div>
