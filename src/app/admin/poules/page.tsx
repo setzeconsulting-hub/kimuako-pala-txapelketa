@@ -4,6 +4,42 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Equipe, Poule, EquipePoule } from '@/lib/types'
 
+// Contraintes : ces paires d'équipes ne doivent PAS être dans la même poule
+// Chaque entrée = [joueur1_equipeA, joueur1_equipeB] (on cherche par nom de garcon ou fille)
+const CONTRAINTES_SEPARATION = [
+  { equipe1: { garcon: 'Oihana', fille: 'Lur' }, equipe2: { garcon: 'Marie', fille: 'Julien' } },
+]
+
+function doiventEtreSeparees(eq1: Equipe, eq2: Equipe): boolean {
+  return CONTRAINTES_SEPARATION.some((c) => {
+    const match1 = (
+      (eq1.garcon.toLowerCase().includes(c.equipe1.garcon.toLowerCase()) &&
+        eq1.fille.toLowerCase().includes(c.equipe1.fille.toLowerCase())) ||
+      (eq1.fille.toLowerCase().includes(c.equipe1.garcon.toLowerCase()) &&
+        eq1.garcon.toLowerCase().includes(c.equipe1.fille.toLowerCase()))
+    )
+    const match2 = (
+      (eq2.garcon.toLowerCase().includes(c.equipe2.garcon.toLowerCase()) &&
+        eq2.fille.toLowerCase().includes(c.equipe2.fille.toLowerCase())) ||
+      (eq2.fille.toLowerCase().includes(c.equipe2.garcon.toLowerCase()) &&
+        eq2.garcon.toLowerCase().includes(c.equipe2.fille.toLowerCase()))
+    )
+    const match1Reverse = (
+      (eq1.garcon.toLowerCase().includes(c.equipe2.garcon.toLowerCase()) &&
+        eq1.fille.toLowerCase().includes(c.equipe2.fille.toLowerCase())) ||
+      (eq1.fille.toLowerCase().includes(c.equipe2.garcon.toLowerCase()) &&
+        eq1.garcon.toLowerCase().includes(c.equipe2.fille.toLowerCase()))
+    )
+    const match2Reverse = (
+      (eq2.garcon.toLowerCase().includes(c.equipe1.garcon.toLowerCase()) &&
+        eq2.fille.toLowerCase().includes(c.equipe1.fille.toLowerCase())) ||
+      (eq2.fille.toLowerCase().includes(c.equipe1.garcon.toLowerCase()) &&
+        eq2.garcon.toLowerCase().includes(c.equipe1.fille.toLowerCase()))
+    )
+    return (match1 && match2) || (match1Reverse && match2Reverse)
+  })
+}
+
 export default function AdminPoules() {
   const [equipes, setEquipes] = useState<Equipe[]>([])
   const [poules, setPoules] = useState<Poule[]>([])
@@ -45,22 +81,23 @@ export default function AdminPoules() {
     await supabase.from('equipes_poules').delete().neq('id', '00000000-0000-0000-0000-000000000000')
     await supabase.from('poules').delete().neq('id', '00000000-0000-0000-0000-000000000000')
 
-    // Équipes validées et payées uniquement
-    const eligibles = equipes.filter((e) => e.statut === 'validee' && e.paye)
+    // Équipes validées uniquement (pas besoin d'avoir payé)
+    const eligibles = equipes.filter((e) => e.statut === 'validee')
 
     for (const serie of ['1ere', '2eme'] as const) {
       const serieEquipes = eligibles.filter((e) => e.serie === serie)
       if (serieEquipes.length < 2) continue
 
+      // Calcul du nombre de poules adapté :
+      // 1ère série : 12 équipes → 3 poules de 4
+      // 2ème série : 18 équipes → 3 poules de 6
+      // Règle générale : viser 4 équipes/poule en S1, 6 en S2
+      const taillePoule = serie === '1ere' ? 4 : 6
+      let nbPoules = Math.max(1, Math.round(serieEquipes.length / taillePoule))
+      if (nbPoules < 1) nbPoules = 1
+
       // Mélanger aléatoirement
       const shuffled = [...serieEquipes].sort(() => Math.random() - 0.5)
-
-      // Calculer le nombre de poules (4-5 équipes par poule)
-      let nbPoules = Math.max(1, Math.round(shuffled.length / 4))
-      // S'assurer qu'on a au moins 2 équipes par poule
-      while (nbPoules > 1 && shuffled.length / nbPoules < 2) {
-        nbPoules--
-      }
 
       // Créer les poules
       const pouleNames = Array.from({ length: nbPoules }, (_, i) => {
@@ -76,15 +113,51 @@ export default function AdminPoules() {
       if (!newPoules) continue
 
       // Répartir les équipes dans les poules (round-robin)
-      const insertions: { equipe_id: string; poule_id: string }[] = []
+      const pouleAssignments: { equipe_id: string; poule_id: string }[][] =
+        Array.from({ length: nbPoules }, () => [])
+
       shuffled.forEach((equipe, index) => {
         const pouleIndex = index % nbPoules
-        insertions.push({
+        pouleAssignments[pouleIndex].push({
           equipe_id: equipe.id,
           poule_id: newPoules[pouleIndex].id,
         })
       })
 
+      // Vérifier les contraintes de séparation et corriger si nécessaire
+      for (let attempt = 0; attempt < 20; attempt++) {
+        let violated = false
+        for (let p = 0; p < nbPoules; p++) {
+          const pouleEquipes = pouleAssignments[p].map(
+            (a) => shuffled.find((e) => e.id === a.equipe_id)!
+          )
+          for (let i = 0; i < pouleEquipes.length; i++) {
+            for (let j = i + 1; j < pouleEquipes.length; j++) {
+              if (doiventEtreSeparees(pouleEquipes[i], pouleEquipes[j])) {
+                violated = true
+                // Trouver une autre poule pour échanger
+                const autrePoule = (p + 1) % nbPoules
+                // Échanger l'équipe j avec la dernière de l'autre poule
+                if (pouleAssignments[autrePoule].length > 0) {
+                  const temp = pouleAssignments[p][j]
+                  const swapIdx = pouleAssignments[autrePoule].length - 1
+                  pouleAssignments[p][j] = {
+                    ...pouleAssignments[autrePoule][swapIdx],
+                    poule_id: newPoules[p].id,
+                  }
+                  pouleAssignments[autrePoule][swapIdx] = {
+                    ...temp,
+                    poule_id: newPoules[autrePoule].id,
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (!violated) break
+      }
+
+      const insertions = pouleAssignments.flat()
       await supabase.from('equipes_poules').insert(insertions)
 
       // Générer les parties (round-robin dans chaque poule)
@@ -121,7 +194,7 @@ export default function AdminPoules() {
 
   if (loading) return <p className="text-gray-500">Chargement...</p>
 
-  const eligibles = equipes.filter((e) => e.statut === 'validee' && e.paye)
+  const eligibles = equipes.filter((e) => e.statut === 'validee')
 
   return (
     <div>
@@ -130,9 +203,12 @@ export default function AdminPoules() {
       {/* Infos */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-800">
         <p>
-          <strong>{eligibles.length}</strong> équipes éligibles (validées + payées) :
-          {' '}{eligibles.filter((e) => e.serie === '1ere').length} en 1ère série,
-          {' '}{eligibles.filter((e) => e.serie === '2eme').length} en 2ème série.
+          <strong>{eligibles.length}</strong> équipes éligibles (validées) :
+          {' '}{eligibles.filter((e) => e.serie === '1ere').length} en 1ère série (poules de 4),
+          {' '}{eligibles.filter((e) => e.serie === '2eme').length} en 2ème série (poules de 6).
+        </p>
+        <p className="mt-1 text-xs text-blue-600">
+          Contrainte : Oihana/Lur et Marie/Julien ne seront pas dans la même poule.
         </p>
       </div>
 
@@ -172,7 +248,9 @@ export default function AdminPoules() {
 
                     return (
                       <div key={poule.id} className="bg-white rounded-xl shadow p-4">
-                        <h3 className="font-bold text-basque-green mb-2">{poule.nom}</h3>
+                        <h3 className="font-bold text-basque-green mb-2">
+                          {poule.nom} ({pouleEquipes.length} éq.)
+                        </h3>
                         <ul className="space-y-1">
                           {pouleEquipes.map((eq) => (
                             <li key={eq.id} className="text-sm text-gray-700 bg-gray-50 rounded px-2 py-1">
