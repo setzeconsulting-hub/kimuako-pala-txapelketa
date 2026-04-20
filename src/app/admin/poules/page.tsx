@@ -46,6 +46,7 @@ export default function AdminPoules() {
   const [equipesPoules, setEquipesPoules] = useState<EquipePoule[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const supabase = createClient()
 
@@ -220,38 +221,60 @@ export default function AdminPoules() {
         </p>
       </div>
 
-      {/* Boutons génération */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <button
-          onClick={() => genererPoules()}
-          disabled={generating || eligibles.length < 2}
-          className="bg-basque-green text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-green-dark transition disabled:opacity-50"
-        >
-          {generating
-            ? 'Génération en cours...'
-            : poules.length > 0
-            ? 'Tout régénérer'
-            : 'Générer les poules'}
-        </button>
-        {poules.length > 0 && (
-          <>
-            <button
-              onClick={() => genererPoules('1ere')}
-              disabled={generating}
-              className="bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
-            >
-              Régénérer 1ère série
-            </button>
-            <button
-              onClick={() => genererPoules('2eme')}
-              disabled={generating}
-              className="bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
-            >
-              Régénérer 2ème série
-            </button>
-          </>
-        )}
-      </div>
+      {/* Génération initiale (si aucune poule) */}
+      {poules.length === 0 && (
+        <div className="flex flex-wrap gap-3 mb-8">
+          <button
+            onClick={() => genererPoules()}
+            disabled={generating || eligibles.length < 2}
+            className="bg-basque-green text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-green-dark transition disabled:opacity-50"
+          >
+            {generating ? 'Génération en cours...' : 'Générer les poules'}
+          </button>
+        </div>
+      )}
+
+      {/* Options avancées (régénération) cachées par défaut */}
+      {poules.length > 0 && (
+        <div className="mb-8">
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="text-sm text-gray-500 hover:text-gray-700 underline"
+          >
+            {showAdvanced ? '▲ Masquer les options avancées' : '▼ Options avancées'}
+          </button>
+          {showAdvanced && (
+            <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800 mb-3">
+                ⚠️ Attention : régénérer les poules supprimera les parties et scores existants.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => genererPoules()}
+                  disabled={generating || eligibles.length < 2}
+                  className="bg-basque-green text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-green-dark transition disabled:opacity-50"
+                >
+                  {generating ? 'Génération en cours...' : 'Tout régénérer'}
+                </button>
+                <button
+                  onClick={() => genererPoules('1ere')}
+                  disabled={generating}
+                  className="bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
+                >
+                  Régénérer 1ère série
+                </button>
+                <button
+                  onClick={() => genererPoules('2eme')}
+                  disabled={generating}
+                  className="bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
+                >
+                  Régénérer 2ème série
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Affichage des poules */}
       {poules.length > 0 && (
