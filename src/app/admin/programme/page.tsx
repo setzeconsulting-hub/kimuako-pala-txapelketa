@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Equipe, Partie, Poule } from '@/lib/types'
+import { SLOTS, getDatesPossibles } from '@/lib/calendrier-constraints'
 
 export default function AdminProgramme() {
   const [parties, setParties] = useState<Partie[]>([])
   const [equipes, setEquipes] = useState<Equipe[]>([])
   const [poules, setPoules] = useState<Poule[]>([])
   const [loading, setLoading] = useState(true)
+  const [showCreneaux, setShowCreneaux] = useState(false)
+  const [filterOnlyFree, setFilterOnlyFree] = useState(false)
 
   const supabase = createClient()
 
@@ -105,6 +108,115 @@ export default function AdminProgramme() {
             🔒 Tout dépublier
           </button>
         </div>
+      </div>
+
+      {/* Tableau des créneaux */}
+      <div className="mb-8">
+        <button
+          onClick={() => setShowCreneaux(!showCreneaux)}
+          className="text-sm text-basque-red hover:text-basque-red-dark underline font-medium mb-3"
+        >
+          {showCreneaux ? '▲ Masquer la vue créneaux' : '▼ Voir tous les créneaux (vue calendrier)'}
+        </button>
+
+        {showCreneaux && (() => {
+          const datesPossibles = getDatesPossibles()
+          // Map (jour_slotIdx) → partie
+          const slotMap = new Map<string, Partie>()
+          parties.forEach((p) => {
+            if (!p.jour || !p.heure) return
+            const slotIdx = SLOTS.indexOf(p.heure.substring(0, 5))
+            if (slotIdx === -1) return
+            slotMap.set(`${p.jour}_${slotIdx}`, p)
+          })
+
+          // Filtrer pour ne garder que les jours avec au moins 1 créneau libre si filterOnlyFree
+          const displayedDates = filterOnlyFree
+            ? datesPossibles.filter((jour) =>
+                SLOTS.some((_, idx) => !slotMap.has(`${jour}_${idx}`))
+              )
+            : datesPossibles
+
+          let countFree = 0
+          let countBusy = 0
+          datesPossibles.forEach((jour) => {
+            SLOTS.forEach((_, idx) => {
+              if (slotMap.has(`${jour}_${idx}`)) countBusy++
+              else countFree++
+            })
+          })
+
+          return (
+            <div className="bg-white rounded-xl shadow p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="text-sm">
+                  <span className="text-green-600 font-bold">{countFree}</span> créneaux libres ·
+                  {' '}<span className="text-basque-red font-bold">{countBusy}</span> occupés
+                </div>
+                <label className="text-xs flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filterOnlyFree}
+                    onChange={(e) => setFilterOnlyFree(e.target.checked)}
+                  />
+                  Afficher uniquement les jours avec créneaux libres
+                </label>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-600">
+                      <th className="text-left px-3 py-2 sticky left-0 bg-gray-50">Date</th>
+                      {SLOTS.map((s) => (
+                        <th key={s} className="px-3 py-2 text-center w-1/3">{s}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedDates.map((jour) => {
+                      const d = new Date(jour + 'T00:00:00')
+                      const label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+                      return (
+                        <tr key={jour} className="border-t">
+                          <td className="px-3 py-2 font-medium sticky left-0 bg-white whitespace-nowrap">
+                            {label}
+                          </td>
+                          {SLOTS.map((_, slotIdx) => {
+                            const key = `${jour}_${slotIdx}`
+                            const partie = slotMap.get(key)
+                            if (partie) {
+                              const eq1 = equipesMap.get(partie.equipe1_id)
+                              const eq2 = equipesMap.get(partie.equipe2_id)
+                              const poule = poulesMap.get(partie.poule_id)
+                              return (
+                                <td key={slotIdx} className="px-3 py-2 text-center bg-red-50 text-xs">
+                                  <div className="font-medium text-gray-800 leading-tight">
+                                    {eq1 ? `${eq1.garcon.split(' ')[0]} & ${eq1.fille.split(' ')[0]}` : '?'}
+                                  </div>
+                                  <div className="text-gray-400 text-[10px]">vs</div>
+                                  <div className="font-medium text-gray-800 leading-tight">
+                                    {eq2 ? `${eq2.garcon.split(' ')[0]} & ${eq2.fille.split(' ')[0]}` : '?'}
+                                  </div>
+                                  <div className="text-[10px] text-basque-red mt-1">{poule?.nom}</div>
+                                </td>
+                              )
+                            }
+                            return (
+                              <td key={slotIdx} className="px-3 py-2 text-center bg-green-50 text-green-700 font-medium">
+                                Libre
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {joursOrdonnes.map((jour) => (
