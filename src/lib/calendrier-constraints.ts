@@ -140,6 +140,7 @@ export const VENDREDI_SLOT_1: Array<{
   nom: string
 }> = [
   { nom: 'Julie Etchecopar', matcher: { garcon: 'Julie ETCHECOPAR' } },
+  { nom: 'Lur & Oihana', matcher: { garcon: 'Lur', fille: 'Oihana' } },
 ]
 
 // Obtenir la liste des dates possibles (lun-ven, hors fronton fermé, hors fériés)

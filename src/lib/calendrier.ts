@@ -133,7 +133,11 @@ export function genererCalendrier(
         error: `Aucun créneau possible pour ${eq1.garcon} & ${eq1.fille} vs ${eq2.garcon} & ${eq2.fille}`,
       }
     }
-    candidatesMap.set(partie.id, shuffleArray(cands))
+    // Prioriser les créneaux 1 et 2 (18:30, 19:15) avant le créneau 3 (20:00)
+    // Les candidats early (slotIdx 0-1) viennent avant les candidats late (slotIdx 2)
+    const early = cands.filter((c) => c.slotIdx < 2)
+    const late = cands.filter((c) => c.slotIdx >= 2)
+    candidatesMap.set(partie.id, [...shuffleArray(early), ...shuffleArray(late)])
   }
 
   // Ordre de traitement : les plus contraints d'abord
