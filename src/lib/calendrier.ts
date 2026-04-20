@@ -83,16 +83,22 @@ function shuffleArray<T>(arr: T[]): T[] {
 // Évalue la qualité d'un calendrier (plus bas = meilleur)
 function evaluerCalendrier(assignments: Assignment[]): number {
   let cost = 0
-  const matchesByDate = new Map<string, number>()
+  const slotsByDate = new Map<string, Set<string>>() // jour → set des heures utilisées
   assignments.forEach((a) => {
-    matchesByDate.set(a.jour, (matchesByDate.get(a.jour) || 0) + 1)
+    if (!slotsByDate.has(a.jour)) slotsByDate.set(a.jour, new Set())
+    slotsByDate.get(a.jour)!.add(a.heure)
     // Pénalité créneau 20:00
     if (a.heure === '20:00') cost += 10
   })
-  // Pénalité soirée à 1 match (on veut éviter) ou 3 matchs (on préfère 2)
-  Array.from(matchesByDate.values()).forEach((count) => {
-    if (count === 1) cost += 30 // soirée solo : forte pénalité
-    if (count === 3) cost += 8 // soirée 3 matchs : légère pénalité
+  Array.from(slotsByDate.entries()).forEach(([, slots]) => {
+    const count = slots.size
+    const has1830 = slots.has('18:30')
+    // Pénalité soirée à 1 match (on veut éviter)
+    if (count === 1) cost += 30
+    // Pénalité soirée 3 matchs (on préfère 2)
+    if (count === 3) cost += 8
+    // Pénalité TRÈS forte si la soirée est utilisée mais pas le créneau 18:30
+    if (!has1830) cost += 100
   })
   return cost
 }
@@ -177,11 +183,16 @@ export function genererCalendrier(
         error: `Aucun créneau possible pour ${eq1.garcon} & ${eq1.fille} vs ${eq2.garcon} & ${eq2.fille}`,
       }
     }
-    // Prioriser les créneaux 1 et 2 (18:30, 19:15) avant le créneau 3 (20:00)
-    // Les candidats early (slotIdx 0-1) viennent avant les candidats late (slotIdx 2)
-    const early = cands.filter((c) => c.slotIdx < 2)
-    const late = cands.filter((c) => c.slotIdx >= 2)
-    candidatesMap.set(partie.id, [...shuffleArray(early), ...shuffleArray(late)])
+    // Prioriser STRICTEMENT : slot 0 (18:30) > slot 1 (19:15) > slot 2 (20:00)
+    // À l'intérieur d'un slot, on mélange les jours (pour diversifier et bien utiliser vendredis)
+    const slot0 = cands.filter((c) => c.slotIdx === 0)
+    const slot1 = cands.filter((c) => c.slotIdx === 1)
+    const slot2 = cands.filter((c) => c.slotIdx === 2)
+    candidatesMap.set(partie.id, [
+      ...shuffleArray(slot0),
+      ...shuffleArray(slot1),
+      ...shuffleArray(slot2),
+    ])
   }
 
   // Ordre de traitement : les plus contraints d'abord
