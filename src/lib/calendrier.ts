@@ -169,14 +169,14 @@ export function genererCalendrier(
     let cov1Dates: Set<string> | null = null
     if (isCov2) {
       cov1Dates = new Set()
-      for (const [pid, cand] of assignments) {
+      Array.from(assignments.entries()).forEach(([pid, cand]) => {
         const p = parties.find((pp) => pp.id === pid)!
         for (const cov of covoituragesData) {
           if (matchInvolvesTeam(p, cov.team1Ids)) {
-            cov1Dates.add(cand.jour)
+            cov1Dates!.add(cand.jour)
           }
         }
-      }
+      })
     }
 
     for (const cand of candidatesMap.get(partie.id)!) {
@@ -222,12 +222,13 @@ export function genererCalendrier(
   for (const cov of covoituragesData) {
     const t1Dates = new Set<string>()
     const t2Dates = new Set<string>()
-    for (const [pid, cand] of assignments) {
+    Array.from(assignments.entries()).forEach(([pid, cand]) => {
       const p = parties.find((pp) => pp.id === pid)!
       if (matchInvolvesTeam(p, cov.team1Ids)) t1Dates.add(cand.jour)
       if (matchInvolvesTeam(p, cov.team2Ids)) t2Dates.add(cand.jour)
-    }
-    for (const d of t2Dates) {
+    })
+    const t2DatesArr = Array.from(t2Dates)
+    for (const d of t2DatesArr) {
       if (!t1Dates.has(d)) {
         return {
           success: false,
@@ -240,12 +241,12 @@ export function genererCalendrier(
   }
 
   const result: Assignment[] = []
-  for (const [pid, cand] of assignments) {
+  Array.from(assignments.entries()).forEach(([pid, cand]) => {
     result.push({
       partie_id: pid,
       jour: cand.jour,
       heure: SLOTS[cand.slotIdx],
     })
-  }
+  })
   return { success: true, assignments: result, stats: { tentatives } }
 }
