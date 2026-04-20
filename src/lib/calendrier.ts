@@ -80,6 +80,50 @@ function shuffleArray<T>(arr: T[]): T[] {
   return copy
 }
 
+// Évalue la qualité d'un calendrier (plus bas = meilleur)
+function evaluerCalendrier(assignments: Assignment[]): number {
+  let cost = 0
+  const matchesByDate = new Map<string, number>()
+  assignments.forEach((a) => {
+    matchesByDate.set(a.jour, (matchesByDate.get(a.jour) || 0) + 1)
+    // Pénalité créneau 20:00
+    if (a.heure === '20:00') cost += 10
+  })
+  // Pénalité soirée à 1 match (on veut éviter) ou 3 matchs (on préfère 2)
+  Array.from(matchesByDate.values()).forEach((count) => {
+    if (count === 1) cost += 30 // soirée solo : forte pénalité
+    if (count === 3) cost += 8 // soirée 3 matchs : légère pénalité
+  })
+  return cost
+}
+
+// Lance plusieurs tentatives et garde la meilleure
+export function genererCalendrierOptimise(
+  parties: Partie[],
+  equipes: Equipe[],
+  nbTentatives = 15
+): { success: boolean; assignments: Assignment[]; error?: string; stats?: { tentatives: number; cost?: number } } {
+  let best: { success: boolean; assignments: Assignment[]; error?: string; stats?: { tentatives: number } } | null = null
+  let bestCost = Infinity
+  let lastError: string | undefined
+  for (let i = 0; i < nbTentatives; i++) {
+    const res = genererCalendrier(parties, equipes)
+    if (!res.success) {
+      lastError = res.error
+      continue
+    }
+    const cost = evaluerCalendrier(res.assignments)
+    if (cost < bestCost) {
+      bestCost = cost
+      best = res
+    }
+  }
+  if (!best) {
+    return { success: false, assignments: [], error: lastError || 'Aucune solution trouvée' }
+  }
+  return { ...best, stats: { tentatives: best.stats?.tentatives || 0, cost: bestCost } }
+}
+
 export function genererCalendrier(
   parties: Partie[],
   equipes: Equipe[]

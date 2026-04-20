@@ -4,13 +4,21 @@
 export const DATE_DEBUT = '2026-04-27'
 export const DATE_FIN = '2026-06-26'
 
+// Formatage de date en local (évite les bugs de fuseau horaire)
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 // Fronton fermé (inclus) du 28/05 au 10/06
 function dateRangeArray(start: string, end: string): string[] {
   const dates: string[] = []
   const d = new Date(start + 'T00:00:00')
   const endD = new Date(end + 'T00:00:00')
   while (d <= endD) {
-    dates.push(d.toISOString().split('T')[0])
+    dates.push(toLocalDateString(d))
     d.setDate(d.getDate() + 1)
   }
   return dates
@@ -150,7 +158,7 @@ export function getDatesPossibles(): string[] {
   const endD = new Date(DATE_FIN + 'T00:00:00')
   while (d <= endD) {
     const dayOfWeek = d.getDay() // 0=dim, 6=sam
-    const dateStr = d.toISOString().split('T')[0]
+    const dateStr = toLocalDateString(d)
     if (dayOfWeek >= 1 && dayOfWeek <= 5 && !FRONTON_FERME.includes(dateStr) && !FERIES.includes(dateStr)) {
       dates.push(dateStr)
     }

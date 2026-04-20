@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Equipe, Partie, Poule } from '@/lib/types'
-import { genererCalendrier } from '@/lib/calendrier'
+import { genererCalendrierOptimise } from '@/lib/calendrier'
 import {
   INDISPOS,
   DISPO_UNIQUEMENT,
@@ -54,7 +54,7 @@ export default function AdminCalendrier() {
     setGenerating(true)
     setResult(null)
 
-    const res = genererCalendrier(parties, equipes)
+    const res = genererCalendrierOptimise(parties, equipes, 20)
 
     if (!res.success) {
       setResult({
