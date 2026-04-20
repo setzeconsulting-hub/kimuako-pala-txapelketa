@@ -36,6 +36,7 @@ export interface Partie {
   heure: string | null
   terrain: string | null
   jouee: boolean
+  publie: boolean
   created_at: string
 }
 

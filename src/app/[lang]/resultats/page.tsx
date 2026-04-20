@@ -83,7 +83,7 @@ export default async function ResultatsPage({ params }: { params: { lang: Lang }
     .order('nom')
   const { data: equipesPoules } = await supabase.from('equipes_poules').select('*')
   const { data: equipes } = await supabase.from('equipes').select('*')
-  const { data: parties } = await supabase.from('parties').select('*')
+  const { data: parties } = await supabase.from('parties').select('*').eq('publie', true)
 
   if (!poules || poules.length === 0) {
     return (

@@ -36,6 +36,18 @@ export default function AdminProgramme() {
     )
   }
 
+  async function publierTout() {
+    if (!confirm('Publier TOUT le programme ? Les parties seront visibles publiquement.')) return
+    await supabase.from('parties').update({ publie: true }).neq('id', '00000000-0000-0000-0000-000000000000')
+    setParties((prev) => prev.map((p) => ({ ...p, publie: true })))
+  }
+
+  async function depublierTout() {
+    if (!confirm('Dépublier TOUT le programme ? Plus rien ne sera visible publiquement.')) return
+    await supabase.from('parties').update({ publie: false }).neq('id', '00000000-0000-0000-0000-000000000000')
+    setParties((prev) => prev.map((p) => ({ ...p, publie: false })))
+  }
+
   if (loading) return <p className="text-gray-500">Chargement...</p>
 
   const equipesMap = new Map(equipes.map((e) => [e.id, e]))
@@ -67,9 +79,33 @@ export default function AdminProgramme() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-800 mb-4">Gestion du programme</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        Saisissez le jour, l&apos;heure et le terrain pour chaque partie.
+      <p className="text-sm text-gray-500 mb-4">
+        Saisissez le jour et l&apos;heure pour chaque partie.
       </p>
+
+      {/* Statut publication */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1 text-sm">
+          <span className="font-medium">Publication : </span>
+          <span className={parties.some((p) => p.publie) ? 'text-green-600 font-bold' : 'text-gray-500'}>
+            {parties.filter((p) => p.publie).length} / {parties.length} parties publiées
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={publierTout}
+            className="bg-basque-green text-white font-medium px-4 py-2 rounded-lg hover:bg-basque-green-dark transition text-sm"
+          >
+            🌐 Tout publier
+          </button>
+          <button
+            onClick={depublierTout}
+            className="bg-gray-600 text-white font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm"
+          >
+            🔒 Tout dépublier
+          </button>
+        </div>
+      </div>
 
       {joursOrdonnes.map((jour) => (
         <div key={jour} className="mb-8">

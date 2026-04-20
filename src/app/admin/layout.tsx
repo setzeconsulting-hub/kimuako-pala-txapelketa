@@ -21,6 +21,7 @@ export default function AdminLayout({
     { href: '/admin', label: 'Dashboard' },
     { href: '/admin/inscriptions', label: 'Inscriptions' },
     { href: '/admin/poules', label: 'Poules' },
+    { href: '/admin/calendrier', label: 'Calendrier auto' },
     { href: '/admin/programme', label: 'Programme' },
     { href: '/admin/scores', label: 'Scores' },
   ]

@@ -1,0 +1,251 @@
+// Algorithme de génération automatique du calendrier
+// Utilise un backtracking avec heuristiques
+
+import { Equipe, Partie } from './types'
+import {
+  SLOTS,
+  INDISPOS,
+  DISPO_UNIQUEMENT,
+  SLOT_MAX,
+  COVOITURAGES,
+  VENDREDI_SLOT_1,
+  matchTeam,
+  getDatesPossibles,
+  estVendredi,
+} from './calendrier-constraints'
+
+export interface Assignment {
+  partie_id: string
+  jour: string
+  heure: string
+}
+
+interface Candidate {
+  jour: string
+  slotIdx: number
+}
+
+interface TeamMeta {
+  indispos: Set<string>
+  dispoUniquement: Set<string> | null // null = pas de restriction
+  maxSlotIdx: number // 2 par défaut (pas de restriction)
+  vendrediSlot1: boolean
+}
+
+function getTeamMeta(equipe: Equipe): TeamMeta {
+  const meta: TeamMeta = {
+    indispos: new Set(),
+    dispoUniquement: null,
+    maxSlotIdx: 2,
+    vendrediSlot1: false,
+  }
+  for (const ind of INDISPOS) {
+    if (matchTeam(equipe, ind.matcher)) {
+      ind.dates.forEach((d) => meta.indispos.add(d))
+    }
+  }
+  for (const du of DISPO_UNIQUEMENT) {
+    if (matchTeam(equipe, du.matcher)) {
+      meta.dispoUniquement = new Set(du.dates)
+    }
+  }
+  for (const sm of SLOT_MAX) {
+    if (matchTeam(equipe, sm.matcher)) {
+      meta.maxSlotIdx = Math.min(meta.maxSlotIdx, sm.maxSlotIdx)
+    }
+  }
+  for (const vs of VENDREDI_SLOT_1) {
+    if (matchTeam(equipe, vs.matcher)) {
+      meta.vendrediSlot1 = true
+    }
+  }
+  return meta
+}
+
+function isSlotValidForTeam(meta: TeamMeta, jour: string, slotIdx: number): boolean {
+  if (meta.indispos.has(jour)) return false
+  if (meta.dispoUniquement && !meta.dispoUniquement.has(jour)) return false
+  if (slotIdx > meta.maxSlotIdx) return false
+  if (meta.vendrediSlot1 && estVendredi(jour) && slotIdx !== 0) return false
+  return true
+}
+
+// Tri aléatoire (utile pour diversifier les générations)
+function shuffleArray<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
+export function genererCalendrier(
+  parties: Partie[],
+  equipes: Equipe[]
+): { success: boolean; assignments: Assignment[]; error?: string; stats?: { tentatives: number } } {
+  const equipesMap = new Map(equipes.map((e) => [e.id, e]))
+  const dates = getDatesPossibles()
+
+  // Pré-calculer les metadata par équipe
+  const teamMetaMap = new Map<string, TeamMeta>()
+  for (const eq of equipes) {
+    teamMetaMap.set(eq.id, getTeamMeta(eq))
+  }
+
+  // Identifier les équipes du covoiturage
+  const covoituragesData = COVOITURAGES.map((c) => {
+    const eqs1 = equipes.filter((e) => matchTeam(e, c.team1))
+    const eqs2 = equipes.filter((e) => matchTeam(e, c.team2))
+    return {
+      nom: c.nom,
+      team1Ids: new Set(eqs1.map((e) => e.id)),
+      team2Ids: new Set(eqs2.map((e) => e.id)),
+    }
+  })
+
+  function matchInvolvesTeam(p: Partie, teamIds: Set<string>): boolean {
+    return teamIds.has(p.equipe1_id) || teamIds.has(p.equipe2_id)
+  }
+
+  // Pré-calculer les candidats (jour, slot) pour chaque partie
+  const candidatesMap = new Map<string, Candidate[]>()
+  for (const partie of parties) {
+    const eq1 = equipesMap.get(partie.equipe1_id)
+    const eq2 = equipesMap.get(partie.equipe2_id)
+    if (!eq1 || !eq2) {
+      return { success: false, assignments: [], error: `Partie ${partie.id}: équipes introuvables` }
+    }
+    const meta1 = teamMetaMap.get(eq1.id)!
+    const meta2 = teamMetaMap.get(eq2.id)!
+    const cands: Candidate[] = []
+    for (const jour of dates) {
+      for (let slotIdx = 0; slotIdx < SLOTS.length; slotIdx++) {
+        if (isSlotValidForTeam(meta1, jour, slotIdx) && isSlotValidForTeam(meta2, jour, slotIdx)) {
+          cands.push({ jour, slotIdx })
+        }
+      }
+    }
+    if (cands.length === 0) {
+      return {
+        success: false,
+        assignments: [],
+        error: `Aucun créneau possible pour ${eq1.garcon} & ${eq1.fille} vs ${eq2.garcon} & ${eq2.fille}`,
+      }
+    }
+    candidatesMap.set(partie.id, shuffleArray(cands))
+  }
+
+  // Ordre de traitement : les plus contraints d'abord
+  // Priorité : (1) matchs covoiturage team1 (LO), (2) team2 (GJ), (3) les + contraints par nb candidats
+  const ordered = [...parties].sort((a, b) => {
+    const aIsCov1 = covoituragesData.some((c) => matchInvolvesTeam(a, c.team1Ids))
+    const bIsCov1 = covoituragesData.some((c) => matchInvolvesTeam(b, c.team1Ids))
+    const aIsCov2 = covoituragesData.some((c) => matchInvolvesTeam(a, c.team2Ids))
+    const bIsCov2 = covoituragesData.some((c) => matchInvolvesTeam(b, c.team2Ids))
+    if (aIsCov1 && !bIsCov1) return -1
+    if (!aIsCov1 && bIsCov1) return 1
+    if (aIsCov2 && !bIsCov2) return -1
+    if (!aIsCov2 && bIsCov2) return 1
+    return candidatesMap.get(a.id)!.length - candidatesMap.get(b.id)!.length
+  })
+
+  // Backtracking
+  const assignments = new Map<string, Candidate>()
+  const usedSlots = new Set<string>() // "jour_slotIdx"
+  const teamDay = new Set<string>() // "equipeId_jour"
+  let tentatives = 0
+  const MAX_TENTATIVES = 500000
+
+  function tryAssign(idx: number): boolean {
+    tentatives++
+    if (tentatives > MAX_TENTATIVES) return false
+    if (idx === ordered.length) return true
+
+    const partie = ordered[idx]
+    const isCov2 = covoituragesData.some((c) => matchInvolvesTeam(partie, c.team2Ids))
+
+    // Calculer les jours déjà utilisés par les équipes team1 du covoiturage (LO)
+    let cov1Dates: Set<string> | null = null
+    if (isCov2) {
+      cov1Dates = new Set()
+      for (const [pid, cand] of assignments) {
+        const p = parties.find((pp) => pp.id === pid)!
+        for (const cov of covoituragesData) {
+          if (matchInvolvesTeam(p, cov.team1Ids)) {
+            cov1Dates.add(cand.jour)
+          }
+        }
+      }
+    }
+
+    for (const cand of candidatesMap.get(partie.id)!) {
+      // Contrainte covoiturage : team2 (GJ) doit jouer un soir où team1 (LO) joue aussi
+      if (isCov2 && cov1Dates && cov1Dates.size > 0 && !cov1Dates.has(cand.jour)) continue
+
+      const slotKey = `${cand.jour}_${cand.slotIdx}`
+      if (usedSlots.has(slotKey)) continue
+
+      const t1DayKey = `${partie.equipe1_id}_${cand.jour}`
+      const t2DayKey = `${partie.equipe2_id}_${cand.jour}`
+      if (teamDay.has(t1DayKey) || teamDay.has(t2DayKey)) continue
+
+      // Affecter
+      assignments.set(partie.id, cand)
+      usedSlots.add(slotKey)
+      teamDay.add(t1DayKey)
+      teamDay.add(t2DayKey)
+
+      if (tryAssign(idx + 1)) return true
+
+      // Backtrack
+      assignments.delete(partie.id)
+      usedSlots.delete(slotKey)
+      teamDay.delete(t1DayKey)
+      teamDay.delete(t2DayKey)
+    }
+    return false
+  }
+
+  const success = tryAssign(0)
+
+  if (!success) {
+    return {
+      success: false,
+      assignments: [],
+      error: `Impossible de générer un calendrier respectant toutes les contraintes (${tentatives} tentatives).`,
+      stats: { tentatives },
+    }
+  }
+
+  // Vérifier la contrainte covoiturage une dernière fois
+  for (const cov of covoituragesData) {
+    const t1Dates = new Set<string>()
+    const t2Dates = new Set<string>()
+    for (const [pid, cand] of assignments) {
+      const p = parties.find((pp) => pp.id === pid)!
+      if (matchInvolvesTeam(p, cov.team1Ids)) t1Dates.add(cand.jour)
+      if (matchInvolvesTeam(p, cov.team2Ids)) t2Dates.add(cand.jour)
+    }
+    for (const d of t2Dates) {
+      if (!t1Dates.has(d)) {
+        return {
+          success: false,
+          assignments: [],
+          error: `Covoiturage ${cov.nom} non respecté : le ${d}, team2 joue mais pas team1.`,
+          stats: { tentatives },
+        }
+      }
+    }
+  }
+
+  const result: Assignment[] = []
+  for (const [pid, cand] of assignments) {
+    result.push({
+      partie_id: pid,
+      jour: cand.jour,
+      heure: SLOTS[cand.slotIdx],
+    })
+  }
+  return { success: true, assignments: result, stats: { tentatives } }
+}
