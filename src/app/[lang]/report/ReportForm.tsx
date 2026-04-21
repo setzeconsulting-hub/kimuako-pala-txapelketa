@@ -107,11 +107,7 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={3}
-          placeholder={
-            lang === 'eu'
-              ? 'Arrazoia, gaineratiko xehetasunak...'
-              : 'Raison du report, précisions...'
-          }
+          placeholder=""
           className="w-full border border-gray-300 rounded-lg px-3 py-2"
         />
       </div>
