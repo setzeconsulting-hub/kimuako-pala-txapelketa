@@ -8,22 +8,25 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
   const [nouveauHeure, setNouveauHeure] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
+  const [accordAutreEquipe, setAccordAutreEquipe] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email) return
+    if (!email || !message.trim() || !accordAutreEquipe) return
     setSubmitting(true)
     setError('')
     const supabase = createClient()
+    // On préfixe le message avec l'info d'accord pour garder la trace
+    const messageAvecAccord = `[Accord autre équipe : OK] ${message.trim()}`
     const { error: err } = await supabase.from('demandes_report').insert({
       partie_id: partieId,
       nouveau_jour: nouveauJour || null,
       nouveau_heure: nouveauHeure || null,
       email_demandeur: email,
-      message: message || null,
+      message: messageAvecAccord,
       statut: 'en_attente',
     })
     setSubmitting(false)
@@ -97,7 +100,7 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {lang === 'eu' ? 'Mezua (aukerakoa)' : 'Message (optionnel)'}
+          {lang === 'eu' ? 'Aldaketaren zergatia' : 'Motif du report'} *
         </label>
         <textarea
           value={message}
@@ -105,19 +108,52 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
           rows={3}
           placeholder={
             lang === 'eu'
-              ? 'Arrazoia, gaineratiko xehetasunak...'
-              : 'Raison du report, précisions...'
+              ? 'Zergatik eskatzen duzu aldaketa hau? (adibidez: eguraldia, ezinbestekoa, oporrak...)'
+              : 'Justifiez votre demande (ex : indisponibilité, météo, urgence...)'
           }
           className="w-full border border-gray-300 rounded-lg px-3 py-2"
+          required
+          minLength={10}
         />
+        <p className="text-xs text-gray-500 mt-1">
+          {lang === 'eu' ? 'Gutxienez 10 karaktere' : 'Au moins 10 caractères'}
+        </p>
+      </div>
+
+      {/* Accord de l'autre équipe */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={accordAutreEquipe}
+            onChange={(e) => setAccordAutreEquipe(e.target.checked)}
+            className="mt-0.5 h-5 w-5 flex-shrink-0 text-basque-red"
+            required
+          />
+          <span className="text-sm text-yellow-900">
+            {lang === 'eu' ? (
+              <>
+                <strong>Beste taldearen baimena *</strong>
+                <br />
+                Berretsi dut beste taldearekin harremanetan jarri naizela eta data eta ordutegi berriarekin ados daudela.
+              </>
+            ) : (
+              <>
+                <strong>Accord de l&apos;autre équipe *</strong>
+                <br />
+                Je confirme avoir contacté l&apos;autre équipe et obtenu son accord pour ce nouveau créneau.
+              </>
+            )}
+          </span>
+        </label>
       </div>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}
 
       <button
         type="submit"
-        disabled={submitting}
-        className="w-full bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50"
+        disabled={submitting || !message.trim() || !accordAutreEquipe}
+        className="w-full bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting
           ? lang === 'eu'
