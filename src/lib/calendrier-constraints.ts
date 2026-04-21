@@ -2,7 +2,7 @@
 // À éditer ici pour changer les règles
 
 export const DATE_DEBUT = '2026-04-27'
-export const DATE_FIN = '2026-06-26'
+export const DATE_FIN = '2026-07-03'
 
 // Formatage de date en local (évite les bugs de fuseau horaire)
 function toLocalDateString(d: Date): string {
@@ -24,7 +24,8 @@ function dateRangeArray(start: string, end: string): string[] {
   return dates
 }
 
-export const FRONTON_FERME = dateRangeArray('2026-05-28', '2026-06-10')
+// Fronton fermé uniquement sur quelques dates specifiques
+export const FRONTON_FERME = ['2026-06-03', '2026-06-04', '2026-06-05']
 
 // Jours fériés
 export const FERIES = [

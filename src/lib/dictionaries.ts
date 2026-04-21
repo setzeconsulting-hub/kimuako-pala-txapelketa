@@ -62,6 +62,9 @@ export const dictionaries = {
       title: 'Programme des parties',
       empty: "Le programme n'est pas encore disponible. Revenez plus tard !",
       terrain: 'Terrain',
+      free: 'Libre',
+      date: 'Date',
+      requestMove: 'Demander un report',
     },
     resultats: {
       title: 'Résultats & Classements',
@@ -147,6 +150,9 @@ export const dictionaries = {
       title: 'Partiden programa',
       empty: 'Programa ez da oraindik eskuragarri. Berantago etorri!',
       terrain: 'Zelaia',
+      free: 'Libre',
+      date: 'Data',
+      requestMove: 'Partidaren aldaketa eskatu',
     },
     resultats: {
       title: 'Emaitzak eta Sailkapenak',
