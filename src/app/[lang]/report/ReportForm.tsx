@@ -15,18 +15,19 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email || !message.trim() || !accordAutreEquipe) return
+    if (!email || !accordAutreEquipe) return
     setSubmitting(true)
     setError('')
     const supabase = createClient()
     // On préfixe le message avec l'info d'accord pour garder la trace
-    const messageAvecAccord = `[Accord autre équipe : OK] ${message.trim()}`
+    const messagePrefix = '[Accord autre équipe : OK]'
+    const finalMessage = message.trim() ? `${messagePrefix} ${message.trim()}` : messagePrefix
     const { error: err } = await supabase.from('demandes_report').insert({
       partie_id: partieId,
       nouveau_jour: nouveauJour || null,
       nouveau_heure: nouveauHeure || null,
       email_demandeur: email,
-      message: messageAvecAccord,
+      message: finalMessage,
       statut: 'en_attente',
     })
     setSubmitting(false)
@@ -100,7 +101,7 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {lang === 'eu' ? 'Aldaketaren zergatia' : 'Motif du report'} *
+          {lang === 'eu' ? 'Mezua (aukerakoa)' : 'Message (optionnel)'}
         </label>
         <textarea
           value={message}
@@ -108,16 +109,11 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
           rows={3}
           placeholder={
             lang === 'eu'
-              ? 'Zergatik eskatzen duzu aldaketa hau? (adibidez: eguraldia, ezinbestekoa, oporrak...)'
-              : 'Justifiez votre demande (ex : indisponibilité, météo, urgence...)'
+              ? 'Arrazoia, gaineratiko xehetasunak...'
+              : 'Raison du report, précisions...'
           }
           className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          required
-          minLength={10}
         />
-        <p className="text-xs text-gray-500 mt-1">
-          {lang === 'eu' ? 'Gutxienez 10 karaktere' : 'Au moins 10 caractères'}
-        </p>
       </div>
 
       {/* Accord de l'autre équipe */}
@@ -152,7 +148,7 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
 
       <button
         type="submit"
-        disabled={submitting || !message.trim() || !accordAutreEquipe}
+        disabled={submitting || !accordAutreEquipe}
         className="w-full bg-basque-red text-white font-bold px-6 py-2.5 rounded-lg hover:bg-basque-red-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting
