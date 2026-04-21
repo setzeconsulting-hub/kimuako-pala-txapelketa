@@ -40,6 +40,19 @@ export interface Partie {
   created_at: string
 }
 
+export type StatutDemande = 'en_attente' | 'validee' | 'refusee'
+
+export interface DemandeReport {
+  id: string
+  partie_id: string
+  nouveau_jour: string | null
+  nouveau_heure: string | null
+  email_demandeur: string
+  message: string | null
+  statut: StatutDemande
+  created_at: string
+}
+
 export interface ClassementEquipe {
   equipe: Equipe
   points: number
