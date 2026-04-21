@@ -117,29 +117,19 @@ export default function ReportForm({ partieId, lang }: { partieId: string; lang:
       </div>
 
       {/* Accord de l'autre équipe */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-basque-green/5 border border-basque-green/30 rounded-lg p-4">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
             checked={accordAutreEquipe}
             onChange={(e) => setAccordAutreEquipe(e.target.checked)}
-            className="mt-0.5 h-5 w-5 flex-shrink-0 text-basque-red"
+            className="mt-0.5 h-5 w-5 flex-shrink-0 text-basque-green"
             required
           />
-          <span className="text-sm text-yellow-900">
-            {lang === 'eu' ? (
-              <>
-                <strong>Beste taldearen baimena *</strong>
-                <br />
-                Berretsi dut beste taldearekin harremanetan jarri naizela eta data eta ordutegi berriarekin ados daudela.
-              </>
-            ) : (
-              <>
-                <strong>Accord de l&apos;autre équipe *</strong>
-                <br />
-                Je confirme avoir contacté l&apos;autre équipe et obtenu son accord pour ce nouveau créneau.
-              </>
-            )}
+          <span className="text-sm text-gray-700">
+            {lang === 'eu'
+              ? 'Beste taldearekin aztertu dugu eta ados daude 😊'
+              : 'On a vu ça avec l\u2019autre équipe, elle est d\u2019accord 😊'}
           </span>
         </label>
       </div>
