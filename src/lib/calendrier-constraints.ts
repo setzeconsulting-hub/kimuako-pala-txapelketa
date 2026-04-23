@@ -27,13 +27,8 @@ function dateRangeArray(start: string, end: string): string[] {
 // Fronton fermé uniquement sur quelques dates specifiques
 export const FRONTON_FERME = ['2026-06-03', '2026-06-04', '2026-06-05']
 
-// Jours fériés
-export const FERIES = [
-  '2026-05-01', // Fête du travail
-  '2026-05-08', // Victoire 1945
-  '2026-05-14', // Ascension
-  '2026-05-25', // Lundi de Pentecôte
-]
+// Jours fériés — vides : les jours fériés sont disponibles pour jouer
+export const FERIES: string[] = []
 
 // Créneaux horaires
 export const SLOTS = ['18:30', '19:15', '20:00']
